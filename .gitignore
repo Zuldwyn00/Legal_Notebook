@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+.venv
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+PROJECT_EXPANSION.md
+PROJECT_OVERVIEW.md
+TECHNICAL_ENHANCEMENTS.md
+information.MD
+JSONs/
+Lead_Score_Tests.docx
+prompts_old.yaml
+documentation/
+scripts/data/
+
+
+
+# Logs
+*.log
+*.log.*
+
+# Temporary files
+temp_*
+*.tmp
+
+# Sensitive Information
+sensitive_config.yaml 
+
+# Other
+
