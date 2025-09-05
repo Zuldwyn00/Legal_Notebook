@@ -87,15 +87,14 @@ def _extract_tool_calls(message: AIMessage) -> List[Dict[str, Any]]:
 
 def _unique_log_filename(base_filename: Optional[str] = None) -> str:
     """
-    Create a unique JSON filename using an optional base, process ID, and timestamp suffix.
+    Create a unique JSON filename using an optional base and a timestamp suffix.
 
     Args:
         base_filename (Optional[str]): Optional base filename (e.g., "chat_log.json").
 
     Returns:
-        str: Filename with process ID and timestamp suffix to ensure uniqueness across instances.
+        str: Filename with a timestamp suffix to ensure uniqueness.
     """
-    import os
     default_base = "chat_log.json"
     raw = base_filename or default_base
 
@@ -103,10 +102,8 @@ def _unique_log_filename(base_filename: Optional[str] = None) -> str:
     stem = Path(raw).stem or "chat_log"
     ext = Path(raw).suffix or ".json"
 
-    # Add process ID and timestamp for uniqueness across multiple instances
-    process_id = os.getpid()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"{stem}_pid{process_id}_{timestamp}{ext}"
+    return f"{stem}_{timestamp}{ext}"
 
 
 def dump_chat_log(

@@ -98,15 +98,15 @@ class PDFProcessorWindow(ctk.CTkToplevel):
         )
         self.find_pdfs_btn.grid(row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10)
         
-        # Vector name selection
+        # Category name selection
         ctk.CTkLabel(
             config_frame,
-            text="🏷️ Vector Name:",
+            text="🏷️ Category Name:",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=OrangeBlackTheme.get_text_color()
         ).grid(row=1, column=0, sticky="w", padx=10, pady=10)
         
-        # Current vector name display
+        # Current category name display
         self.vector_name_var = ctk.StringVar(value="chunk")
         self.vector_name_label = ctk.CTkLabel(
             config_frame,
@@ -116,10 +116,10 @@ class PDFProcessorWindow(ctk.CTkToplevel):
         )
         self.vector_name_label.grid(row=1, column=1, sticky="w", padx=(10, 10), pady=10)
         
-        # Browse button for existing vector names
+        # Browse button for existing category names
         self.browse_vectors_btn = ctk.CTkButton(
             config_frame,
-            text="🔍 Choose Vector",
+            text="🔍 Choose Category",
             font=ctk.CTkFont(size=11),
             height=30,
             command=self._browse_existing_vectors,
@@ -129,10 +129,10 @@ class PDFProcessorWindow(ctk.CTkToplevel):
         )
         self.browse_vectors_btn.grid(row=1, column=2, padx=(0, 10), pady=10)
         
-        # Vector name explanation
+        # Category name explanation
         vector_note = ctk.CTkLabel(
             config_frame,
-            text="💡 Vector names organize your embeddings (e.g., Use 'chunk' for uncategorized, 'training' for training documents)",
+            text="💡 Category names organize your embeddings (e.g., Use 'chunk' for uncategorized, 'training' for training documents)",
             font=ctk.CTkFont(size=12),
             text_color=OrangeBlackTheme.get_text_color()
         )
@@ -227,7 +227,7 @@ class PDFProcessorWindow(ctk.CTkToplevel):
             self.process_btn.configure(state="disabled")
     
     def _browse_existing_vectors(self):
-        """Browse existing vector names from the database."""
+        """Browse existing category names from the database."""
         try:
             # Get existing vector names
             vector_names = self.qdrant_manager.get_vector_names("smart_advocate")
@@ -243,9 +243,9 @@ class PDFProcessorWindow(ctk.CTkToplevel):
             self._log(f"❌ Failed to get existing vectors: {str(e)}")
     
     def _show_vector_selection_dialog(self, vector_names: List[str]):
-        """Show a dialog for selecting from existing vector names."""
+        """Show a dialog for selecting from existing category names."""
         dialog = ctk.CTkToplevel(self)
-        dialog.title("Select Vector Name")
+        dialog.title("Select Category Name")
         dialog.geometry("400x400")
         dialog.configure(fg_color=OrangeBlackTheme.get_primary_bg())
         dialog.transient(self)
@@ -258,13 +258,13 @@ class PDFProcessorWindow(ctk.CTkToplevel):
         # Title
         title_label = ctk.CTkLabel(
             dialog,
-            text="Select Vector Name:",
+            text="Select Category Name:",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=OrangeBlackTheme.get_accent_color()
         )
         title_label.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
         
-        # Create a scrollable frame for vector names
+        # Create a scrollable frame for category names
         scrollable_frame = ctk.CTkScrollableFrame(
             dialog,
             fg_color=OrangeBlackTheme.get_secondary_bg(),
@@ -274,7 +274,7 @@ class PDFProcessorWindow(ctk.CTkToplevel):
         scrollable_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 10))
         scrollable_frame.grid_columnconfigure(0, weight=1)
         
-        # Create buttons for each vector name
+        # Create buttons for each category name
         for vector_name in vector_names:
             btn = ctk.CTkButton(
                 scrollable_frame,
@@ -304,9 +304,9 @@ class PDFProcessorWindow(ctk.CTkToplevel):
         cancel_btn.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
     
     def _select_vector_name(self, vector_name: str, dialog):
-        """Select a vector name and close the dialog."""
+        """Select a category name and close the dialog."""
         self.vector_name_var.set(vector_name)
-        self._log(f"✅ Selected vector name: {vector_name}")
+        self._log(f"✅ Selected category name: {vector_name}")
         dialog.destroy()
     
     def _open_pdf_folder(self):
@@ -514,7 +514,7 @@ Are you sure you want to continue?"""
             
             self._log(f"🚀 Starting PDF processing...")
             self._log(f"📁 Folder: {folder_path}")
-            self._log(f"🏷️ Vector name: {vector_name}")
+            self._log(f"🏷️ Category name: {vector_name}")
             self._log(f"📦 Batch size: {batch_size}")
             
             # Find PDF files
@@ -682,7 +682,7 @@ Are you sure you want to continue?"""
             collection_name = "smart_advocate"
             
             self._log(f"🗑️ Starting vector clearing...")
-            self._log(f"🏷️ Vector name: {vector_name}")
+            self._log(f"🏷️ Category name: {vector_name}")
             self._log(f"📦 Collection: {collection_name}")
             
             # Get file information BEFORE clearing vectors

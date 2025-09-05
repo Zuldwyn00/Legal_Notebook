@@ -83,7 +83,7 @@ class QueryInputFrame(ctk.CTkFrame):
         )
         self.search_button.grid(row=5, column=0, sticky="ew", padx=15, pady=(0, 10))
         
-        # PDF Processor button
+        # PDF Processor button (disabled by default)
         self.pdf_processor_button = ctk.CTkButton(
             self,
             text="📚 Add PDFs to Database",
@@ -94,9 +94,13 @@ class QueryInputFrame(ctk.CTkFrame):
             hover_color=OrangeBlackTheme.get_hover_color(),
             text_color=OrangeBlackTheme.get_text_color(),
             border_width=1,
-            border_color=OrangeBlackTheme.BORDER_COLOR
+            border_color=OrangeBlackTheme.BORDER_COLOR,
+            state="disabled"  # Disabled by default
         )
         self.pdf_processor_button.grid(row=6, column=0, sticky="ew", padx=15, pady=(0, 10))
+        
+        # Initialize tooltip for PDF processor button
+        self.pdf_tooltip = None
         
         # Session cost display
         self.session_cost_label = ctk.CTkLabel(
@@ -117,14 +121,14 @@ class QueryInputFrame(ctk.CTkFrame):
         self.session_cost_description.grid(row=8, column=0, sticky="w", padx=15, pady=(0, 15))
         
         # Right side: Model selection and search limit controls
-        # Model selection section
-        model_label = ctk.CTkLabel(
+        # Model selection section (hidden by default)
+        self.model_label = ctk.CTkLabel(
             self,
             text="🤖 AI Model:",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=OrangeBlackTheme.get_secondary_text_color()
         )
-        model_label.grid(row=1, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
+        self.model_label.grid(row=1, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
         
         # Model selection dropdown
         self.model_var = ctk.StringVar(value="gpt-5-chat")  # Default model
@@ -154,14 +158,14 @@ class QueryInputFrame(ctk.CTkFrame):
         )
         self.model_description.grid(row=3, column=2, sticky="ew", padx=(0, 15), pady=(0, 10))
         
-        # Search limit section
-        limit_label = ctk.CTkLabel(
+        # Search limit section (hidden by default)
+        self.limit_label = ctk.CTkLabel(
             self,
             text="🔍 Limit:",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=OrangeBlackTheme.get_secondary_text_color()
         )
-        limit_label.grid(row=5, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
+        self.limit_label.grid(row=5, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
         
         # Search limit input field
         self.limit_var = ctk.StringVar(value="10")  # Default from config
@@ -178,14 +182,14 @@ class QueryInputFrame(ctk.CTkFrame):
         self.limit_entry.grid(row=6, column=2, sticky="ew", padx=(0, 15), pady=(0, 5))
         
         # Search limit description
-        limit_description = ctk.CTkLabel(
+        self.limit_description = ctk.CTkLabel(
             self,
             text="Number of relevant chunks to retrieve",
             font=ctk.CTkFont(size=10),
             text_color=OrangeBlackTheme.get_secondary_text_color(),
             wraplength=200
         )
-        limit_description.grid(row=7, column=2, sticky="w", padx=(0, 15), pady=(0, 10))
+        self.limit_description.grid(row=7, column=2, sticky="w", padx=(0, 15), pady=(0, 10))
         
         # Update description for default model
         self._update_model_description()
@@ -201,6 +205,12 @@ class QueryInputFrame(ctk.CTkFrame):
         
         # Example queries section (positioned under query input on left side)
         self._add_example_queries()
+        
+        # Initially hide admin controls (admin mode disabled by default)
+        self._hide_admin_controls()
+        
+        # Setup tooltip for PDF processor button
+        self._setup_pdf_tooltip()
     
     def _on_model_change(self, selected_model: str):
         """Handle model selection change."""
@@ -331,6 +341,62 @@ class QueryInputFrame(ctk.CTkFrame):
             print(f"Failed to import PDF processor: {e}")
         except Exception as e:
             print(f"Failed to open PDF processor: {e}")
+    
+    def _show_admin_controls(self):
+        """Show the admin control elements (model selection and limit) and adjust grid layout."""
+        # Show model selection elements
+        self.model_label.grid(row=1, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
+        self.model_dropdown.grid(row=2, column=2, sticky="ew", padx=(0, 15), pady=(0, 5))
+        self.model_description.grid(row=3, column=2, sticky="ew", padx=(0, 15), pady=(0, 10))
+        
+        # Show limit control elements
+        self.limit_label.grid(row=5, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
+        self.limit_entry.grid(row=6, column=2, sticky="ew", padx=(0, 15), pady=(0, 5))
+        self.limit_description.grid(row=7, column=2, sticky="w", padx=(0, 15), pady=(0, 10))
+        
+        # Adjust grid configuration to give space to admin controls
+        self.grid_columnconfigure(0, weight=3)  # Query input gets more space
+        self.grid_columnconfigure(1, weight=0)  # Spacing column
+        self.grid_columnconfigure(2, weight=1)  # Controls get less space
+    
+    def _hide_admin_controls(self):
+        """Hide the admin control elements and adjust grid layout."""
+        # Hide model selection elements
+        self.model_label.grid_remove()
+        self.model_dropdown.grid_remove()
+        self.model_description.grid_remove()
+        
+        # Hide limit control elements
+        self.limit_label.grid_remove()
+        self.limit_entry.grid_remove()
+        self.limit_description.grid_remove()
+        
+        # Adjust grid configuration to give all space to query input
+        self.grid_columnconfigure(0, weight=1)  # Query input gets all space
+        self.grid_columnconfigure(1, weight=0)  # Spacing column (unused)
+        self.grid_columnconfigure(2, weight=0)  # Controls column (unused)
+    
+    def _setup_pdf_tooltip(self):
+        """Setup tooltip for PDF processor button."""
+        from .tooltip import Tooltip
+        self.pdf_tooltip = Tooltip(
+            self.pdf_processor_button,
+            "Enable admin mode to use this feature",
+            delay=200  # Reduced delay for faster appearance
+        )
+    
+    def set_admin_mode(self, enabled: bool):
+        """Set admin mode state and update UI accordingly."""
+        if enabled:
+            self._show_admin_controls()
+            # Hide tooltip when admin mode is enabled
+            if self.pdf_tooltip:
+                self.pdf_tooltip.update_text("")
+        else:
+            self._hide_admin_controls()
+            # Show tooltip when admin mode is disabled
+            if self.pdf_tooltip:
+                self.pdf_tooltip.update_text("Enable admin mode to use this feature")
     
     def get_query(self) -> str:
         """

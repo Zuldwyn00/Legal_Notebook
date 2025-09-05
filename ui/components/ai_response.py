@@ -17,6 +17,9 @@ class AIResponseFrame(ctk.CTkFrame):
         super().__init__(parent)
         
         self.on_citation_click = None  # Callback for citation clicks
+        self._current_font_size = 16  # Default font size
+        self._min_font_size = 8  # Minimum font size
+        self._max_font_size = 32  # Maximum font size
         self._setup_ui()
     
     def _setup_ui(self):
@@ -31,18 +34,65 @@ class AIResponseFrame(ctk.CTkFrame):
         header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
         header_frame.grid_columnconfigure(0, weight=1)
         
+        # Title on the left
         self.response_title = ctk.CTkLabel(
             header_frame,
             text="🤖 AI Response",
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color=OrangeBlackTheme.get_accent_color()
         )
-        self.response_title.pack(side="left")
+        self.response_title.grid(row=0, column=0, sticky="w")
+        
+        # Zoom controls on the right
+        zoom_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        zoom_frame.grid(row=0, column=1, sticky="e")
+        
+        # Zoom out button
+        self.zoom_out_button = ctk.CTkButton(
+            zoom_frame,
+            text="−",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            width=30,
+            height=30,
+            command=self._zoom_out,
+            fg_color=OrangeBlackTheme.get_secondary_bg(),
+            hover_color=OrangeBlackTheme.get_hover_color(),
+            text_color=OrangeBlackTheme.get_text_color(),
+            border_width=1,
+            border_color=OrangeBlackTheme.BORDER_COLOR
+        )
+        self.zoom_out_button.pack(side="left", padx=(0, 5))
+        
+        # Current font size display
+        self.font_size_label = ctk.CTkLabel(
+            zoom_frame,
+            text=f"{self._current_font_size}px",
+            font=ctk.CTkFont(size=12),
+            text_color=OrangeBlackTheme.get_text_color(),
+            width=50
+        )
+        self.font_size_label.pack(side="left", padx=5)
+        
+        # Zoom in button
+        self.zoom_in_button = ctk.CTkButton(
+            zoom_frame,
+            text="+",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            width=30,
+            height=30,
+            command=self._zoom_in,
+            fg_color=OrangeBlackTheme.get_secondary_bg(),
+            hover_color=OrangeBlackTheme.get_hover_color(),
+            text_color=OrangeBlackTheme.get_text_color(),
+            border_width=1,
+            border_color=OrangeBlackTheme.BORDER_COLOR
+        )
+        self.zoom_in_button.pack(side="left")
         
         # Response display area (larger font for better readability)
         self.response_textbox = ctk.CTkTextbox(
             self,
-            font=ctk.CTkFont(size=16, weight="normal"),
+            font=ctk.CTkFont(size=self._current_font_size, weight="normal"),
             wrap="word",
             fg_color=OrangeBlackTheme.INPUT_BG,
             border_color=OrangeBlackTheme.BORDER_COLOR,
@@ -59,6 +109,10 @@ class AIResponseFrame(ctk.CTkFrame):
     def _show_empty_state(self):
         """Show empty state when no response."""
         self.response_textbox.delete("1.0", "end")
+        # Ensure current font size is applied
+        self.response_textbox.configure(
+            font=ctk.CTkFont(size=self._current_font_size, weight="normal")
+        )
         self.response_textbox.insert("1.0", "🤖 Ask a question above and I'll provide a detailed answer based on your knowledge base...")
         self.response_textbox.configure(state="disabled")
     
@@ -79,6 +133,11 @@ class AIResponseFrame(ctk.CTkFrame):
         """
         self.response_textbox.configure(state="normal")
         self.response_textbox.delete("1.0", "end")
+        
+        # Ensure current font size is applied
+        self.response_textbox.configure(
+            font=ctk.CTkFont(size=self._current_font_size, weight="normal")
+        )
         
         # Extract suggested searches from the response
         suggested_searches = self.extract_suggested_searches(response)
@@ -306,6 +365,10 @@ class AIResponseFrame(ctk.CTkFrame):
         
         self.response_textbox.configure(state="normal")
         self.response_textbox.delete("1.0", "end")
+        # Ensure current font size is applied
+        self.response_textbox.configure(
+            font=ctk.CTkFont(size=self._current_font_size, weight="normal")
+        )
         self.response_textbox.insert("1.0", searching_msg)
         self.response_textbox.configure(state="disabled")
     
@@ -320,6 +383,10 @@ class AIResponseFrame(ctk.CTkFrame):
         
         self.response_textbox.configure(state="normal")
         self.response_textbox.delete("1.0", "end")
+        # Ensure current font size is applied
+        self.response_textbox.configure(
+            font=ctk.CTkFont(size=self._current_font_size, weight="normal")
+        )
         self.response_textbox.insert("1.0", no_context_msg)
         self.response_textbox.configure(state="disabled")
     
@@ -334,5 +401,45 @@ class AIResponseFrame(ctk.CTkFrame):
         
         self.response_textbox.configure(state="normal")
         self.response_textbox.delete("1.0", "end")
+        # Ensure current font size is applied
+        self.response_textbox.configure(
+            font=ctk.CTkFont(size=self._current_font_size, weight="normal")
+        )
         self.response_textbox.insert("1.0", error_msg)
         self.response_textbox.configure(state="disabled")
+    
+    def _zoom_in(self):
+        """Increase font size for better readability."""
+        if self._current_font_size < self._max_font_size:
+            self._current_font_size += 2
+            self._update_font_size()
+    
+    def _zoom_out(self):
+        """Decrease font size to fit more content."""
+        if self._current_font_size > self._min_font_size:
+            self._current_font_size -= 2
+            self._update_font_size()
+    
+    def _update_font_size(self):
+        """
+        Update the font size of the response textbox and refresh the display.
+        Preserves current content and formatting.
+        """
+        # Update the textbox font
+        self.response_textbox.configure(
+            font=ctk.CTkFont(size=self._current_font_size, weight="normal")
+        )
+        
+        # Update the font size label
+        self.font_size_label.configure(text=f"{self._current_font_size}px")
+        
+        # Update button states based on zoom limits
+        self.zoom_in_button.configure(
+            state="normal" if self._current_font_size < self._max_font_size else "disabled"
+        )
+        self.zoom_out_button.configure(
+            state="normal" if self._current_font_size > self._min_font_size else "disabled"
+        )
+        
+        # Force textbox to refresh and maintain word wrapping
+        self.response_textbox.update_idletasks()

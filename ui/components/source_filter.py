@@ -1,5 +1,5 @@
 """
-Source filter component for filtering search results by document sources.
+Category selection component for filtering search results by document categories.
 """
 
 import customtkinter as ctk
@@ -11,7 +11,7 @@ from ..theme import OrangeBlackTheme
 
 class SourceFilterFrame(ctk.CTkFrame):
     """
-    Frame containing source filtering controls.
+    Frame containing category selection controls.
     """
     
     def __init__(self, parent, on_source_filter_change: Callable[[List[str]], None]):
@@ -23,7 +23,7 @@ class SourceFilterFrame(ctk.CTkFrame):
         self._setup_ui()
     
     def _setup_ui(self):
-        """Setup the source filter interface."""
+        """Setup the category selection interface."""
         
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
@@ -31,7 +31,7 @@ class SourceFilterFrame(ctk.CTkFrame):
         # Title
         title_label = ctk.CTkLabel(
             self,
-            text="📚 Source Filter",
+            text="📚 Category Selection",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color=OrangeBlackTheme.get_accent_color()
         )
@@ -40,13 +40,13 @@ class SourceFilterFrame(ctk.CTkFrame):
         # Description
         description_label = ctk.CTkLabel(
             self,
-            text="Select specific documents to search within:",
+            text="Select specific categories to search within:",
             font=ctk.CTkFont(size=11),
             text_color=OrangeBlackTheme.get_secondary_text_color()
         )
         description_label.grid(row=1, column=0, sticky="w", padx=15, pady=(0, 10))
         
-        # Source selection frame
+        # Category selection frame
         self.sources_frame = ctk.CTkScrollableFrame(
             self,
             height=200,
@@ -89,7 +89,7 @@ class SourceFilterFrame(ctk.CTkFrame):
         # Status label
         self.status_label = ctk.CTkLabel(
             self,
-            text="No sources loaded",
+            text="No categories loaded",
             font=ctk.CTkFont(size=10),
             text_color=OrangeBlackTheme.get_secondary_text_color()
         )
@@ -97,10 +97,10 @@ class SourceFilterFrame(ctk.CTkFrame):
     
     def load_sources(self, sources: List[str]):
         """
-        Load available vector names into the filter.
+        Load available category names into the filter.
         
         Args:
-            sources (List[str]): List of vector names (document types)
+            sources (List[str]): List of category names (document types)
         """
         self.available_sources = sources
         self._clear_source_checkboxes()
@@ -112,24 +112,24 @@ class SourceFilterFrame(ctk.CTkFrame):
         self._update_status()
     
     def _clear_source_checkboxes(self):
-        """Clear all existing source checkboxes."""
+        """Clear all existing category checkboxes."""
         for widget in self.sources_frame.winfo_children():
             widget.destroy()
     
     def _create_source_checkboxes(self):
-        """Create checkboxes for each available vector name."""
+        """Create checkboxes for each available category name."""
         if not self.available_sources:
             return
         
         for vector_name in self.available_sources:
-            # Create a frame for this vector name
+            # Create a frame for this category name
             source_group_frame = ctk.CTkFrame(
                 self.sources_frame,
                 fg_color="transparent"
             )
             source_group_frame.pack(fill="x", padx=5, pady=2)
             
-            # Create checkbox for this vector name
+            # Create checkbox for this category name
             var = ctk.BooleanVar()
             checkbox = ctk.CTkCheckBox(
                 source_group_frame,
@@ -151,17 +151,17 @@ class SourceFilterFrame(ctk.CTkFrame):
     
     def _on_source_toggle(self, var: ctk.BooleanVar, vector_name: str):
         """
-        Handle source checkbox toggle.
+        Handle category checkbox toggle.
         
         Args:
             var (ctk.BooleanVar): The checkbox variable
-            vector_name (str): The vector name for this document type
+            vector_name (str): The category name for this document type
         """
         if var.get():
-            # Add this vector name
+            # Add this category name
             self.selected_sources.add(vector_name)
         else:
-            # Remove this vector name
+            # Remove this category name
             self.selected_sources.discard(vector_name)
         
         # Update status label to reflect new count
@@ -171,7 +171,7 @@ class SourceFilterFrame(ctk.CTkFrame):
         self.on_source_filter_change(list(self.selected_sources))
     
     def _select_all_sources(self):
-        """Select all available vector names."""
+        """Select all available category names."""
         self.selected_sources.clear()
         self.selected_sources.update(self.available_sources)
         
@@ -189,7 +189,7 @@ class SourceFilterFrame(ctk.CTkFrame):
         self.on_source_filter_change(list(self.selected_sources))
     
     def _select_none_sources(self):
-        """Deselect all vector names."""
+        """Deselect all category names."""
         self.selected_sources.clear()
         
         # Update all checkboxes
@@ -208,26 +208,26 @@ class SourceFilterFrame(ctk.CTkFrame):
     def _update_status(self):
         """Update the status label."""
         if not self.available_sources:
-            self.status_label.configure(text="No document types loaded")
+            self.status_label.configure(text="No categories loaded")
         else:
             total_sources = len(self.available_sources)
             selected_count = len(self.selected_sources)
             if selected_count == 0:
-                self.status_label.configure(text=f"⚠️  No document types selected ({total_sources} available)")
+                self.status_label.configure(text=f"⚠️  No categories selected ({total_sources} available)")
             elif selected_count == total_sources:
-                self.status_label.configure(text=f"✅ All document types selected ({total_sources} total)")
+                self.status_label.configure(text=f"✅ All categories selected ({total_sources} total)")
             else:
-                self.status_label.configure(text=f"📚 {selected_count}/{total_sources} document types selected")
+                self.status_label.configure(text=f"📚 {selected_count}/{total_sources} categories selected")
     
     def get_selected_sources(self) -> List[str]:
         """
-        Get the currently selected vector names.
+        Get the currently selected category names.
         
         Returns:
-            List[str]: List of selected vector names
+            List[str]: List of selected category names
         """
         return list(self.selected_sources)
     
     def clear_selection(self):
-        """Clear the current source selection."""
+        """Clear the current category selection."""
         self._select_none_sources()

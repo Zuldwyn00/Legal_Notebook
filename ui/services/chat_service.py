@@ -82,7 +82,7 @@ class ChatService:
         Args:
             query (str): User's search query
             limit (int, optional): Maximum number of results to return. Uses config if None.
-            source_filter (List[str], optional): List of vector names to search in. If None, searches all sources.
+            source_filter (List[str], optional): List of category names to search in. If None, searches all sources.
             
         Returns:
             List[Dict]: List of search results with context
@@ -93,31 +93,31 @@ class ChatService:
                 config = load_config()
                 limit = config.get('vector_database', {}).get('search_limit', 10)
             
-            self.logger.info(f"Searching knowledge base for: {query} (limit: {limit}, source_filter: {source_filter if source_filter else 'All sources'})")
+            self.logger.info(f"Searching knowledge base for: {query} (limit: {limit}, source_filter: {source_filter if source_filter else 'All categories'})")
             
             # Get embeddings for the query
             vector_message = self.embedding_client.get_embeddings(query)
             
-            # Search vector database using vector names directly
+            # Search vector database using category names directly
             if source_filter:
-                # Search specific vector names
+                # Search specific category names
                 search_results = self.qdrant_client.search_vectors(
                     'smart_advocate', 
                     vector_message, 
-                    vector_name=source_filter,  # Pass list of vector names
+                    vector_name=source_filter,  # Pass list of category names
                     limit=limit
                 )
-                self.logger.info(f"Found {len(search_results)} results from selected sources: {source_filter}")
+                self.logger.info(f"Found {len(search_results)} results from selected categories: {source_filter}")
             else:
-                # Search all available vector names
+                # Search all available category names
                 vector_names = self.qdrant_client.get_vector_names('smart_advocate')
                 search_results = self.qdrant_client.search_vectors(
                     'smart_advocate', 
                     vector_message, 
-                    vector_name=vector_names,  # Pass all vector names
+                    vector_name=vector_names,  # Pass all category names
                     limit=limit
                 )
-                self.logger.info(f"Found {len(search_results)} results from all sources")
+                self.logger.info(f"Found {len(search_results)} results from all categories")
             
             # Extract and enrich results with actual text content
             context_chunks = []
@@ -197,18 +197,18 @@ class ChatService:
     
     def get_available_sources(self) -> List[str]:
         """
-        Get all available vector names (document types) from the vector database.
+        Get all available category names (document types) from the vector database.
         
         Returns:
-            List[str]: List of available vector names
+            List[str]: List of available category names
         """
         try:
-            self.logger.info("Retrieving available vector names from vector database")
+            self.logger.info("Retrieving available category names from vector database")
             vector_names = self.qdrant_client.get_vector_names('smart_advocate')
-            self.logger.info(f"Found {len(vector_names)} vector names")
+            self.logger.info(f"Found {len(vector_names)} category names")
             return vector_names
         except Exception as e:
-            self.logger.error(f"Error retrieving available vector names: {str(e)}")
+            self.logger.error(f"Error retrieving available category names: {str(e)}")
             return []
     
     def reset_for_new_search(self):
