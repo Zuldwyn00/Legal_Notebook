@@ -7,6 +7,8 @@ import json
 from typing import Callable, Optional
 from pathlib import Path
 from ..theme import OrangeBlackTheme
+from .chunk_slider import ChunkSlider
+from utils import setup_logger, load_config
 
 
 class QueryInputFrame(ctk.CTkFrame):
@@ -16,6 +18,9 @@ class QueryInputFrame(ctk.CTkFrame):
     
     def __init__(self, parent, on_search: Callable[[], None]):
         super().__init__(parent)
+        
+        # Setup logging
+        self.logger = setup_logger(self.__class__.__name__, load_config())
         
         self.on_search = on_search
         self.available_models = self._load_available_models()
@@ -161,35 +166,29 @@ class QueryInputFrame(ctk.CTkFrame):
         # Search limit section (hidden by default)
         self.limit_label = ctk.CTkLabel(
             self,
-            text="🔍 Limit:",
+            text="🔍 Chunk Selection:",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=OrangeBlackTheme.get_secondary_text_color()
         )
         self.limit_label.grid(row=5, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
         
-        # Search limit input field
-        self.limit_var = ctk.StringVar(value="10")  # Default from config
-        self.limit_entry = ctk.CTkEntry(
+        # Draggable chunk slider
+        self.chunk_slider = ChunkSlider(
             self,
-            textvariable=self.limit_var,
-            font=ctk.CTkFont(size=12),
-            width=60,
-            fg_color=OrangeBlackTheme.INPUT_BG,
-            border_color=OrangeBlackTheme.BORDER_COLOR,
-            text_color=OrangeBlackTheme.get_text_color(),
-            placeholder_text="10"
+            initial_value=10,
+            on_value_change=self._on_chunk_limit_change
         )
-        self.limit_entry.grid(row=6, column=2, sticky="ew", padx=(0, 15), pady=(0, 5))
+        self.chunk_slider.grid(row=6, column=2, sticky="ew", padx=(0, 15), pady=(0, 5))
         
         # Search limit description
         self.limit_description = ctk.CTkLabel(
             self,
-            text="Number of relevant chunks to retrieve",
+            text="Drag the slider to select number of relevant chunks (1-30)",
             font=ctk.CTkFont(size=10),
             text_color=OrangeBlackTheme.get_secondary_text_color(),
             wraplength=200
         )
-        self.limit_description.grid(row=7, column=2, sticky="w", padx=(0, 15), pady=(0, 10))
+        self.limit_description.grid(row=7, column=2, sticky="ew", padx=(0, 15), pady=(0, 10))
         
         # Update description for default model
         self._update_model_description()
@@ -351,7 +350,7 @@ class QueryInputFrame(ctk.CTkFrame):
         
         # Show limit control elements
         self.limit_label.grid(row=5, column=2, sticky="w", padx=(0, 15), pady=(0, 5))
-        self.limit_entry.grid(row=6, column=2, sticky="ew", padx=(0, 15), pady=(0, 5))
+        self.chunk_slider.grid(row=6, column=2, sticky="ew", padx=(0, 15), pady=(0, 5))
         self.limit_description.grid(row=7, column=2, sticky="w", padx=(0, 15), pady=(0, 10))
         
         # Adjust grid configuration to give space to admin controls
@@ -368,7 +367,7 @@ class QueryInputFrame(ctk.CTkFrame):
         
         # Hide limit control elements
         self.limit_label.grid_remove()
-        self.limit_entry.grid_remove()
+        self.chunk_slider.grid_remove()
         self.limit_description.grid_remove()
         
         # Adjust grid configuration to give all space to query input
@@ -433,25 +432,24 @@ class QueryInputFrame(ctk.CTkFrame):
         """Focus the query input field."""
         self.query_entry.focus()
     
+    def _on_chunk_limit_change(self, value: int):
+        """
+        Handle chunk limit change from slider.
+        
+        Args:
+            value (int): New chunk limit value
+        """
+        # The slider already handles validation, so we just need to log the change
+        self.logger.debug(f"Chunk limit changed to: {value}")
+    
     def get_search_limit(self) -> int:
         """
         Get the user-specified search limit.
         
         Returns:
-            int: The search limit, or 10 if invalid input
+            int: The search limit from the slider (1-30)
         """
-        try:
-            limit = int(self.limit_var.get())
-            if limit > 0 and limit <= 100:  # Reasonable upper bound
-                return limit
-            else:
-                # Reset to default if out of range
-                self.limit_var.set("10")
-                return 10
-        except (ValueError, TypeError):
-            # Reset to default if invalid input
-            self.limit_var.set("10")
-            return 10
+        return self.chunk_slider.get_value()
     
     def update_session_cost(self, cost: float):
         """
