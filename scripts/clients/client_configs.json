@@ -50,7 +50,7 @@
       "supports_tools": false, 
       "description": "Smaller embedding model for efficiency",
       "pricing": {
-        "input": null,
+        "input": 0.02,
         "output": null
       }
     },
@@ -60,7 +60,7 @@
       "supports_tools": false,
       "description": "Larger embedding model for accuracy",
       "pricing": {
-        "input": null,
+        "input": 0.143,
         "output": null
       }
     }

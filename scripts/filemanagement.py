@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 import pymupdf
 from langchain_text_splitters import TokenTextSplitter
 from tika import parser
+import os
 
 
 # ─── LOCAL IMPORTS ──────────────────────────────────────────────────────────────────
@@ -16,8 +17,49 @@ config = load_config()
 logger = setup_logger(__name__, config)
 
 
+# ─── HELPER FUNCTIONS ──────────────────────────────────────────────────────────────
+
+def resolve_file_path(filepath: str) -> str:
+    """
+    Resolve file path by prepending root_path from config if available.
+    Handles both Windows backslashes and Unix forward slashes properly.
+    
+    Args:
+        filepath (str): Original file path (relative or absolute)
+        
+    Returns:
+        str: Resolved file path with root_path prepended if configured
+    """
+    root_path = config.get('vector_database', {}).get('root_path', '')
+    if root_path and root_path.strip():
+        # Normalize the root path to handle both forward and backward slashes
+        root_path = os.path.normpath(root_path)
+        logger.debug("Config found rootpath: '%s', adding to filepath: '%s'", root_path, filepath)
+        return os.path.join(root_path, filepath)
+    
+    return filepath
 
 
+def with_root_path(func):
+    """
+    Decorator that automatically resolves file paths by prepending root_path from config.
+    The decorated function should have 'filepath' as its first parameter.
+    """
+    def wrapper(*args, **kwargs):
+        # Get the filepath from the first argument
+        if args:
+            filepath = args[0]
+            # Resolve the filepath with root_path
+            resolved_filepath = resolve_file_path(filepath)
+            # Replace the first argument with the resolved filepath
+            args = (resolved_filepath,) + args[1:]
+        return func(*args, **kwargs)
+    return wrapper
+
+
+
+
+@with_root_path
 def get_text_from_file(filepath: str, **kwargs):
     """
     Extract text from various file formats using Apache Tika.
@@ -32,7 +74,7 @@ def get_text_from_file(filepath: str, **kwargs):
     """
     # Extended timeout for large files (10 minutes)
     request_options = {"timeout": 600}
-    
+
     try:
         logger.info(f"Extracting text from {filepath}")
         parsed_file = parser.from_file(filepath, requestOptions=request_options, **kwargs)
@@ -54,6 +96,7 @@ def get_text_from_file(filepath: str, **kwargs):
         return {'content': ''}
 
 
+@with_root_path
 def get_text_with_pages(filepath: str) -> Dict[str, Any]:
     """
     Extract text from PDF files page by page using PyMuPDF.
@@ -241,6 +284,7 @@ class FileManager:
         return chunk_data
 
 
+@with_root_path
 def get_text_from_page_range(filepath: str, start_page: int, end_page: int) -> str:
     """
     Extract text from specific page range in a PDF file.
@@ -298,6 +342,7 @@ def get_text_from_page_range(filepath: str, start_page: int, end_page: int) -> s
 
 # ─── DEBUG FUNCTIONS ────────────────────────────────────────────────────────────────
 
+@with_root_path
 def debug_page_mapping(filepath: str, chunk_start: int = 0, chunk_end: int = None):
     """
     Debug function to inspect page mapping for a specific file and chunk range.

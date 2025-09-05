@@ -17,3 +17,4 @@ aiconfig:
 
 vector_database:
   search_limit: 10  # Number of relevant chunks to retrieve from vector search
+  root_path: "C:\\Users\\Justin\\Desktop\\legal_test_pdf"
