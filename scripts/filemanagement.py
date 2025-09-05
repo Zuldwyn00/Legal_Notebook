@@ -16,27 +16,148 @@ from utils import load_config, setup_logger, count_tokens
 config = load_config()
 logger = setup_logger(__name__, config)
 
+# Cache for accessible scanner path to avoid repeated path testing
+_accessible_scanner_path_cache = None
+
 
 # ─── HELPER FUNCTIONS ──────────────────────────────────────────────────────────────
 
+def detect_network_drive_mapping() -> str:
+    """
+    Detect the actual network drive mapping for the scanner path.
+    This helps when the drive letter might be different (S:, F:, etc.).
+    
+    Returns:
+        str: The mapped drive path if found, or empty string if not found
+    """
+    try:
+        import subprocess
+        import re
+        
+        # Get all mapped drives using net use command
+        result = subprocess.run(['net', 'use'], capture_output=True, text=True, shell=True)
+        
+        if result.returncode == 0:
+            # Look for drives mapped to the scanner IP
+            for line in result.stdout.split('\n'):
+                if '192.168.1.20' in line and 'scanner' in line.lower():
+                    # Extract drive letter from the line
+                    match = re.search(r'([A-Z]):\s+\\\\192\.168\.1\.20\\scanner', line)
+                    if match:
+                        drive_letter = match.group(1)
+                        logger.info("Found network drive mapping: %s: -> \\\\192.168.1.20\\scanner", drive_letter)
+                        return f"{drive_letter}:\\"
+        
+        logger.debug("No network drive mapping found for scanner IP")
+        return ''
+        
+    except Exception as e:
+        logger.debug("Error detecting network drive mapping: %s", str(e))
+        return ''
+
+
+def find_accessible_scanner_path() -> str:
+    """
+    Dynamically find the accessible scanner path by testing different possible locations.
+    Uses caching to avoid repeated path testing on subsequent calls.
+    
+    Returns:
+        str: The first accessible scanner path found, or empty string if none found
+    """
+    global _accessible_scanner_path_cache
+    
+    # Return cached result if available
+    if _accessible_scanner_path_cache is not None:
+        return _accessible_scanner_path_cache
+    
+    # Get the base path from config (e.g., "S:\\JustinPinter\\Legal_Notebook")
+    base_path = config.get('vector_database', {}).get('root_path', '')
+    if not base_path or not base_path.strip():
+        _accessible_scanner_path_cache = ''
+        return ''
+    
+    # Extract the project folder name (e.g., "Legal_Notebook")
+    project_folder = os.path.basename(os.path.normpath(base_path))
+    
+    # Extract the parent folder name (e.g., "JustinPinter")
+    # From "S:\JustinPinter\Legal_Notebook" -> "JustinPinter"
+    parent_folder = os.path.basename(os.path.dirname(os.path.normpath(base_path)))
+    
+    # Try to detect the actual network drive mapping first
+    detected_drive = detect_network_drive_mapping()
+    
+    # Define possible scanner paths to test
+    possible_paths = [
+        base_path,  # Direct path from config (S:\JustinPinter\Legal_Notebook)
+        f"\\\\192.168.1.20\\scanner\\scan\\{parent_folder}\\{project_folder}",  # UNC path with IP (most reliable)
+        f"\\\\192.168.1.20\\scanner\\{parent_folder}\\{project_folder}",  # Alternative UNC structure
+    ]
+    
+    # Add detected drive paths if we found a mapping
+    if detected_drive:
+        possible_paths.extend([
+            f"{detected_drive}scan\\{parent_folder}\\{project_folder}",  # Using detected drive
+            f"{detected_drive}scanner\\scan\\{parent_folder}\\{project_folder}",  # Alternative with detected drive
+        ])
+    
+    # Add common drive letter variations
+    for drive_letter in ['S', 'F', 'Z', 'X']:  # Common network drive letters
+        possible_paths.extend([
+            f"{drive_letter}:\\scanner\\scan\\{parent_folder}\\{project_folder}",
+            f"{drive_letter}:\\scan\\{parent_folder}\\{project_folder}",
+        ])
+    
+    # Test each path to find the first accessible one
+    logger.debug("Testing %d possible scanner paths...", len(possible_paths))
+    for i, path in enumerate(possible_paths, 1):
+        try:
+            normalized_path = os.path.normpath(path)
+            logger.debug("Testing path %d/%d: '%s'", i, len(possible_paths), normalized_path)
+            if os.path.exists(normalized_path) and os.access(normalized_path, os.R_OK):
+                logger.info("Found accessible scanner path: '%s'", normalized_path)
+                _accessible_scanner_path_cache = normalized_path
+                return normalized_path
+        except (OSError, PermissionError) as e:
+            logger.debug("Path '%s' not accessible: %s", path, str(e))
+            continue
+    
+    logger.warning("No accessible scanner path found, using relative paths")
+    _accessible_scanner_path_cache = ''
+    return ''
+
+
+def clear_scanner_path_cache():
+    """
+    Clear the cached scanner path. Useful for testing or if network paths change.
+    """
+    global _accessible_scanner_path_cache
+    _accessible_scanner_path_cache = None
+    logger.debug("Scanner path cache cleared")
+
+
 def resolve_file_path(filepath: str) -> str:
     """
-    Resolve file path by prepending root_path from config if available.
+    Resolve file path by prepending accessible root_path from config.
+    Dynamically detects the correct scanner path based on user access level.
     Handles both Windows backslashes and Unix forward slashes properly.
     
     Args:
         filepath (str): Original file path (relative or absolute)
         
     Returns:
-        str: Resolved file path with root_path prepended if configured
+        str: Resolved file path with accessible root_path prepended if found
     """
-    root_path = config.get('vector_database', {}).get('root_path', '')
+    # Find the accessible scanner path dynamically
+    root_path = find_accessible_scanner_path()
+    
     if root_path and root_path.strip():
         # Normalize the root path to handle both forward and backward slashes
         root_path = os.path.normpath(root_path)
-        logger.debug("Config found rootpath: '%s', adding to filepath: '%s'", root_path, filepath)
+        logger.debug("Using accessible rootpath: '%s', adding to filepath: '%s'", root_path, filepath)
         return os.path.join(root_path, filepath)
     
+    # Fallback to relative path if no accessible root path found
+    logger.debug("No accessible root path found, using relative path: '%s'", filepath)
     return filepath
 
 
