@@ -16,9 +16,9 @@ sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
 from ..theme import OrangeBlackTheme
 from scripts.vectordb import QdrantManager
-from scripts.filemanagement import FileManager
+from scripts.filemanagement import FileManager, resolve_file_path
 from scripts.clients import AzureClient
-from utils import find_files, load_from_json, save_to_json
+from utils import find_files, load_from_json, save_to_json, load_config
 import qdrant_client
 
 
@@ -310,11 +310,14 @@ class PDFProcessorWindow(ctk.CTkToplevel):
         dialog.destroy()
     
     def _open_pdf_folder(self):
-        """Open the PDF folder in the file explorer."""
+        """Open the PDF folder in the file explorer using root_path from config."""
         try:
-            # Get the application directory (works with both development and PyInstaller)
-            app_dir = Path(__file__).parent.parent.parent
-            pdf_folder = app_dir / "scripts" / "data" / "pdfs"
+            # Use resolve_file_path to prepend root_path to the relative path
+            relative_pdf_path = "scripts/data/pdfs"
+            resolved_pdf_path = resolve_file_path(relative_pdf_path)
+            pdf_folder = Path(resolved_pdf_path)
+            
+            self._log(f"📁 Using resolved PDF folder: {pdf_folder}")
             
             # Check if folder exists
             if not pdf_folder.exists():
@@ -489,10 +492,12 @@ Are you sure you want to continue?"""
     
     def _validate_inputs(self) -> bool:
         """Validate user inputs."""
-        # Check if the default PDF folder exists
-        folder_path = "scripts/data/pdfs"
-        if not os.path.exists(folder_path):
-            self._log(f"❌ PDF folder does not exist: {folder_path}")
+        # Use resolve_file_path to prepend root_path to the relative path
+        relative_pdf_path = "scripts/data/pdfs"
+        resolved_pdf_path = resolve_file_path(relative_pdf_path)
+        
+        if not os.path.exists(resolved_pdf_path):
+            self._log(f"❌ PDF folder does not exist: {resolved_pdf_path}")
             return False
         
         return True
@@ -500,7 +505,10 @@ Are you sure you want to continue?"""
     def _process_pdfs(self):
         """Process PDF files following the embedding_test logic."""
         try:
-            folder_path = "scripts/data/pdfs"  # Fixed folder path
+            # Use resolve_file_path to prepend root_path to the relative path
+            relative_pdf_path = "scripts/data/pdfs"
+            folder_path = resolve_file_path(relative_pdf_path)
+            
             vector_name = self.vector_name_var.get().strip()
             batch_size = 50  # Fixed batch size
             
@@ -719,12 +727,12 @@ Are you sure you want to continue?"""
                     source = point.payload.get('source', '')
                     if source:
                         # Convert to relative path format used in processed_files.json
-                        # Source format: "scripts/data/pdfs/filename.pdf"
+                        # Source format could be from root_path or default "scripts/data/pdfs/filename.pdf"
                         # We need to normalize it to match the format in processed_files.json
                         if source.startswith('scripts/data/pdfs/'):
                             relative_path = source
                         else:
-                            # Handle other path formats
+                            # Handle other path formats (including root_path)
                             relative_path = source.replace('\\', '/')
                         
                         files_to_remove.add(relative_path)

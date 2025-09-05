@@ -8,8 +8,8 @@ logger:
   level: "DEBUG"  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"  # Log message format
   datefmt: "%Y-%m-%d %H:%M:%S"  # Date format for log messages
-  filename: "pdf_scraper.log"  # Log file name
-  max_bytes: 2000000 # 2MB
+  filename: "legal_notebook.log"  # Log file name
+  max_bytes: 10000000 # 2MB
   backup_count: 5
 
 aiconfig:
@@ -17,4 +17,4 @@ aiconfig:
 
 vector_database:
   search_limit: 10  # Number of relevant chunks to retrieve from vector search
-  root_path: "C:\\Users\\Justin\\Desktop\\legal_test_pdf"
+  root_path: ""

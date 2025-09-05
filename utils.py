@@ -106,10 +106,24 @@ def setup_logger(
         config["logger"]["format"], datefmt=config["logger"]["datefmt"]
     )
 
-    # Create file handler
+    # Create file handler with unique filename for concurrent instances
     log_dir = Path(__file__).resolve().parent / config["directories"]["logs"]
     log_dir.mkdir(exist_ok=True)
-    log_filename = filename or config["logger"]["filename"]
+    
+    # Create unique filename for each instance to avoid conflicts
+    if filename is None:
+        import time
+        import os
+        base_filename = config["logger"]["filename"]
+        # Add process ID and timestamp to make filename unique
+        process_id = os.getpid()
+        timestamp = int(time.time())
+        name_without_ext = Path(base_filename).stem
+        ext = Path(base_filename).suffix
+        log_filename = f"{name_without_ext}_pid{process_id}_{timestamp}{ext}"
+    else:
+        log_filename = filename
+    
     log_file = log_dir / log_filename
 
     # Use RotatingFileHandler for log rotation
