@@ -19,8 +19,20 @@ logger = setup_logger(__name__, config)
 # Cache for accessible scanner path to avoid repeated path testing
 _accessible_scanner_path_cache = None
 
+# Global flag to enable/disable scanner folder detection
+# Set to False to use relative paths only, True to detect scanner folder paths
+ENABLE_SCANNER_DETECTION = True
+
 
 # ─── HELPER FUNCTIONS ──────────────────────────────────────────────────────────────
+
+# ─── SCANNER FOLDER PATH DETECTION ────────────────────────────────────────────────
+# NOTE: The following functions are specifically for detecting scanner folder paths
+# on network drives. If you want to use relative paths only, set ENABLE_SCANNER_DETECTION = False
+# at the top of this file.
+#
+# TO DISABLE SCANNER DETECTION: Change ENABLE_SCANNER_DETECTION = False above.
+# This will make the system use relative paths only.
 
 def detect_network_drive_mapping() -> str:
     """
@@ -61,6 +73,10 @@ def find_accessible_scanner_path() -> str:
     Dynamically find the accessible scanner path by testing different possible locations.
     Uses caching to avoid repeated path testing on subsequent calls.
     
+    SCANNER-SPECIFIC FUNCTION: This function is designed specifically for detecting
+    scanner folder paths on network drives. To disable scanner path detection and use
+    relative paths only, set ENABLE_SCANNER_DETECTION = False at the top of this file.
+    
     Returns:
         str: The first accessible scanner path found, or empty string if none found
     """
@@ -70,11 +86,21 @@ def find_accessible_scanner_path() -> str:
     if _accessible_scanner_path_cache is not None:
         return _accessible_scanner_path_cache
     
+    # Check if scanner detection is enabled
+    if not ENABLE_SCANNER_DETECTION:
+        logger.debug("Scanner detection disabled, using relative paths only")
+        _accessible_scanner_path_cache = ''
+        return ''
+    
     # Get the base path from config (e.g., "S:\\JustinPinter\\Legal_Notebook")
     base_path = config.get('vector_database', {}).get('root_path', '')
     if not base_path or not base_path.strip():
         _accessible_scanner_path_cache = ''
         return ''
+    
+    # =============================================================================
+    # SCANNER PATH DETECTION LOGIC
+    # =============================================================================
     
     # Extract the project folder name (e.g., "Legal_Notebook")
     project_folder = os.path.basename(os.path.normpath(base_path))
@@ -107,6 +133,10 @@ def find_accessible_scanner_path() -> str:
             f"{drive_letter}:\\scan\\{parent_folder}\\{project_folder}",
         ])
     
+    # =============================================================================
+    # END SCANNER PATH DETECTION LOGIC
+    # =============================================================================
+    
     # Test each path to find the first accessible one
     logger.debug("Testing %d possible scanner paths...", len(possible_paths))
     for i, path in enumerate(possible_paths, 1):
@@ -133,6 +163,25 @@ def clear_scanner_path_cache():
     global _accessible_scanner_path_cache
     _accessible_scanner_path_cache = None
     logger.debug("Scanner path cache cleared")
+
+
+def set_scanner_detection(enabled: bool):
+    """
+    Enable or disable scanner folder detection.
+    
+    Args:
+        enabled (bool): True to enable scanner detection, False to use relative paths only
+    """
+    global ENABLE_SCANNER_DETECTION, _accessible_scanner_path_cache
+    
+    ENABLE_SCANNER_DETECTION = enabled
+    # Clear cache when changing detection mode
+    _accessible_scanner_path_cache = None
+    
+    if enabled:
+        logger.info("Scanner detection enabled")
+    else:
+        logger.info("Scanner detection disabled - using relative paths only")
 
 
 def resolve_file_path(filepath: str) -> str:
