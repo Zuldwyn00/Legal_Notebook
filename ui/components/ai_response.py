@@ -120,14 +120,15 @@ class AIResponseFrame(ctk.CTkFrame):
         """Clear the response display."""
         self._show_empty_state()
     
-    def display_response(self, response: str, total_cost: float = 0.0):
+    def display_response(self, response: str, total_cost: float = 0.0, context_chunks_count: int = 0):
         """
         Display an AI response with interactive citations and cost information.
-        
+
         Args:
             response (str): The AI-generated response text
             total_cost (float): The total cost of the API call
-            
+            context_chunks_count (int): Number of context chunks used to generate the response
+
         Returns:
             list: List of extracted suggested searches, if any
         """
@@ -143,7 +144,7 @@ class AIResponseFrame(ctk.CTkFrame):
         suggested_searches = self.extract_suggested_searches(response)
         
         # Insert response and make citations interactive
-        self._insert_response_with_citations(response)
+        self._insert_response_with_citations(response, context_chunks_count if context_chunks_count > 0 else None)
         
         # Add cost information at the end
         if total_cost > 0:
@@ -207,22 +208,32 @@ class AIResponseFrame(ctk.CTkFrame):
         
         return suggested_searches
     
-    def _insert_response_with_citations(self, response: str):
+    def _insert_response_with_citations(self, response: str, max_citation_number: int = None):
         """
         Insert response text and make citation numbers interactive and section headers colored.
-        
+
         Args:
             response (str): The AI response text containing citations like [1], [2], etc.
+            max_citation_number (int, optional): Maximum valid citation number. Citations above this will be made non-clickable.
         """
         # Pattern to match citation references like [1], [2], [10], etc.
         citation_pattern = r'\[(\d+)\]'
-        
+
         # Pattern to match section headers (case insensitive, at start of line or after newline)
         section_header_pattern = r'(?:^|\n)(Direct Answer|Explanation|Sources|Follow-ups?|Summary|Conclusion|Key Points?|Important Notes?|Additional Information|Suggest(?:ed)?\s+Search(?:es)?)(?:\s*\n|$)'
-        
+
         # Find all citations and their positions
         citations = list(re.finditer(citation_pattern, response))
         section_headers = list(re.finditer(section_header_pattern, response, re.IGNORECASE | re.MULTILINE))
+
+        # Filter out invalid citations if max_citation_number is provided
+        if max_citation_number is not None:
+            valid_citations = []
+            for citation in citations:
+                citation_number = int(citation.group(1))
+                if 1 <= citation_number <= max_citation_number:
+                    valid_citations.append(citation)
+            citations = valid_citations
         
         # If no special formatting needed, insert text normally
         if not citations and not section_headers:

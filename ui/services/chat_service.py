@@ -172,11 +172,13 @@ class ChatService:
         try:
             self.logger.info(f"Generating AI response using {len(context_chunks)} context chunks")
             
-            # Build context string for the AI
-            context_text = "\n\n---\n\n".join([
-                f"Source: {Path(chunk['source']).name} (Pages {chunk['page_range']})\n{chunk['text']}"
-                for chunk in context_chunks
-            ])
+            # Build context string for the AI with explicit citation numbering
+            context_parts = []
+            for i, chunk in enumerate(context_chunks, 1):  # Start numbering from 1
+                context_parts.append(
+                    f"[Source {i}] {Path(chunk['source']).name} (Pages {chunk['page_range']})\n{chunk['text']}"
+                )
+            context_text = "\n\n---\n\n".join(context_parts)
             
             # Create the complete message with context
             user_message_with_context = f"{query}\n\nCONTEXT:\n{context_text}"

@@ -241,9 +241,9 @@ class MainWindow(ctk.CTk):
             if search_results:
                 # Generate AI response
                 ai_response, total_cost = self.chat_service.generate_response(query, search_results)
-                self.after(0, self._update_ai_response, ai_response, total_cost)
+                self.after(0, self._update_ai_response, ai_response, total_cost, len(search_results))
             else:
-                self.after(0, self._update_ai_response, None, 0.0)
+                self.after(0, self._update_ai_response, None, 0.0, 0)
                 
         except Exception as e:
             self.logger.error(f"Search error: {str(e)}")
@@ -256,15 +256,15 @@ class MainWindow(ctk.CTk):
         """Update the results display with search results."""
         self.results_frame.display_results(results)
     
-    def _update_ai_response(self, response: Optional[str], total_cost: float = 0.0):
+    def _update_ai_response(self, response: Optional[str], total_cost: float = 0.0, context_chunks_count: int = 0):
         """Update the AI response display."""
         if response:
             # Display the response and get suggested searches
-            suggested_searches = self.ai_response_frame.display_response(response, total_cost)
-            
+            suggested_searches = self.ai_response_frame.display_response(response, total_cost, context_chunks_count)
+
             # Update session cost display
             self.query_frame.update_session_cost(total_cost)
-            
+
             # Update example questions with suggested searches if available
             if suggested_searches:
                 self.logger.info(f"Extracted {len(suggested_searches)} suggested searches from AI response")

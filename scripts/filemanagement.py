@@ -21,7 +21,7 @@ _accessible_scanner_path_cache = None
 
 # Global flag to enable/disable scanner folder detection
 # Set to False to use relative paths only, True to detect scanner folder paths
-ENABLE_SCANNER_DETECTION = True
+ENABLE_SCANNER_DETECTION = False
 
 
 # ─── HELPER FUNCTIONS ──────────────────────────────────────────────────────────────
